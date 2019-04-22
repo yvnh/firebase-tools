@@ -10,7 +10,11 @@ jobs:
     - stage: hosting functional test
       if: repo == head_repo OR type == push
       node_js: "6"
-      before_script: ./scripts/decrypt-app-credentials.sh
+      before_script:
+        - gcloud version || true
+        - if [ ! -d "$HOME/google-cloud-sdk/bin" ]; then rm -rf $HOME/google-cloud-sdk; export CLOUDSDK_CORE_DISABLE_PROMPTS=1; curl https://sdk.cloud.google.com | bash; fi
+        - source /home/travis/google-cloud-sdk/path.bash.inc
+        - gcloud version
       script: ./scripts/test-hosting.sh
       after_script: skip
     - stage: functions functional test
@@ -21,4 +25,5 @@ jobs:
       after_script: skip
 cache:
   directories:
+    - "$HOME/google-cloud-sdk/"
     - node_modules
