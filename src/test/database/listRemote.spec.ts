@@ -1,9 +1,10 @@
 import { expect } from "chai";
 import * as nock from "nock";
+import * as sinon from "sinon";
 
 import * as utils from "../../utils";
 import * as api from "../../api";
-import * as helpers from "../helpers";
+import { mockAuth } from "../helpers";
 import { RTDBListRemote } from "../../database/listRemote";
 
 describe("ListRemote", () => {
@@ -11,7 +12,15 @@ describe("ListRemote", () => {
   const remote = new RTDBListRemote(instance);
   const serverUrl = utils.addSubdomain(api.realtimeOrigin, instance);
 
+  let sandbox: sinon.SinonSandbox;
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+    mockAuth(sandbox);
+  });
+
   afterEach(() => {
+    sandbox.restore();
     nock.cleanAll();
   });
 

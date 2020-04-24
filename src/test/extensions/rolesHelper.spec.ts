@@ -1,9 +1,11 @@
-import * as _ from "lodash";
 import { expect } from "chai";
+import * as _ from "lodash";
 import * as nock from "nock";
-import * as api from "../../api";
-import { FirebaseError } from "../../error";
+import * as sinon from "sinon";
 
+import { FirebaseError } from "../../error";
+import { mockAuth } from "../helpers";
+import * as api from "../../api";
 import * as rolesHelper from "../../extensions/rolesHelper";
 
 const PROJECT_ID = "test-proj";
@@ -16,7 +18,15 @@ const IAM_VERSION = "v1";
 const RESOURCEMANAGER_VERSION = "v1";
 
 describe("createServiceAccountAndSetRoles", () => {
+  let sandbox: sinon.SinonSandbox;
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+    mockAuth(sandbox);
+  });
+
   afterEach(() => {
+    sandbox.restore();
     nock.cleanAll();
   });
 
@@ -79,7 +89,15 @@ describe("createServiceAccountAndSetRoles", () => {
 });
 
 describe("grantRoles", () => {
+  let sandbox: sinon.SinonSandbox;
+
+  beforeEach(() => {
+    sandbox = sinon.createSandbox();
+    mockAuth(sandbox);
+  });
+
   afterEach(() => {
+    sandbox.restore();
     nock.cleanAll();
   });
 

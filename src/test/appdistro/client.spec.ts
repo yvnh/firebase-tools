@@ -1,5 +1,7 @@
 import { expect } from "chai";
 import * as sinon from "sinon";
+import * as nock from "nock";
+
 import {
   AppDistributionClient,
   UploadStatus,
@@ -7,7 +9,7 @@ import {
 } from "../../appdistribution/client";
 import { FirebaseError } from "../../error";
 import * as api from "../../api";
-import * as nock from "nock";
+import { mockAuth } from "../helpers";
 
 describe("distribution", () => {
   const appId = "1:12345789:ios:abc123def456";
@@ -18,6 +20,7 @@ describe("distribution", () => {
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     sandbox.useFakeTimers();
+    mockAuth(sandbox);
   });
 
   afterEach(() => {

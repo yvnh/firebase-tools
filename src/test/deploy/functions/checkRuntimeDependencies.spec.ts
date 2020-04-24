@@ -7,6 +7,7 @@ import { configstore } from "../../../configstore";
 import * as api from "../../../api";
 import { checkRuntimeDependencies } from "../../../deploy/functions/checkRuntimeDependencies";
 import { POLL_SETTINGS } from "../../../ensureApiEnabled";
+import { mockAuth } from "../../helpers";
 
 describe("checkRuntimeDependencies()", () => {
   let restoreInterval: number;
@@ -23,6 +24,7 @@ describe("checkRuntimeDependencies()", () => {
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     logStub = sandbox.stub(logger, "warn");
+    mockAuth(sandbox);
   });
 
   afterEach(() => {
