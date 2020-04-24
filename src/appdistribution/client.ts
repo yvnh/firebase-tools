@@ -74,7 +74,7 @@ export class AppDistributionClient {
       files: {
         file: {
           stream: distribution.readStream(),
-          size: distribution.fileSize(),
+          knownLength: distribution.fileSize(),
           contentType: "multipart/form-data",
         },
       },
