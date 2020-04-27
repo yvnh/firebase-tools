@@ -341,7 +341,7 @@ export async function request(
     url: options.origin + resource,
   };
 
-  if (method !== "GET") {
+  if (method !== HttpMethod.GET) {
     if (_.size(options.data) > 0) {
       reqOptions.body = options.data;
     } else if (_.size(options.form) > 0) {
