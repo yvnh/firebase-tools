@@ -31,7 +31,7 @@ describe("cloudRunProxy", () => {
   });
 
   it("should error when not provided a valid Cloud Run service ID", async () => {
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator({ run: { serviceId: "" } });
     const spyMw = sinon.spy(mw);
 
@@ -65,7 +65,7 @@ describe("cloudRunProxy", () => {
       .get("/v1alpha1/projects/project-foo/locations/us-central1/services/badService")
       .reply(200, { status: { address: {} } });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator({ run: { serviceId: "badService" } });
     const spyMw = sinon.spy(mw);
 
@@ -85,7 +85,7 @@ describe("cloudRunProxy", () => {
       .get("/")
       .reply(200, "live version");
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -106,7 +106,7 @@ describe("cloudRunProxy", () => {
       .get("/")
       .reply(200, "live version");
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator({ run: { serviceId: "helloworld", region: "asia-southeast1" } });
     const spyMw = sinon.spy(mw);
 
@@ -128,37 +128,37 @@ describe("cloudRunProxy", () => {
       .get("/")
       .reply(200, "live version");
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator({ run: { serviceId: "multiLookup" } });
     const spyMw = sinon.spy(mw);
 
     await supertest(spyMw)
       .get("/")
       .expect(200, "live version");
-    await expect(spyMw.calledOnce).to.be.true;
-    await expect(multiNock.isDone()).to.be.true;
+    expect(spyMw.calledOnce).to.be.true;
+    expect(multiNock.isDone()).to.be.true;
 
     // New rewrite for the same Cloud Run service
     const failMultiNock = nock(cloudRunApiOrigin)
       .get("/v1alpha1/projects/project-foo/locations/us-central1/services/multiLookup")
       .reply(500, "should not happen");
 
-    const mw2Generator = await cloudRunProxy(fakeOptions);
+    const mw2Generator = cloudRunProxy(fakeOptions);
     const mw2 = await mw2Generator({ run: { serviceId: "multiLookup" } });
     const spyMw2 = sinon.spy(mw2);
 
     await supertest(spyMw2)
       .get("/")
       .expect(200, "live version");
-    await expect(spyMw2.calledOnce).to.be.true;
-    await expect(failMultiNock.isDone()).to.be.false;
+    expect(spyMw2.calledOnce).to.be.true;
+    expect(failMultiNock.isDone()).to.be.false;
 
     // Second hit to the same path
     await supertest(spyMw2)
       .get("/")
       .expect(200, "live version");
-    await expect(spyMw2.calledTwice).to.be.true;
-    await expect(failMultiNock.isDone()).to.be.false;
+    expect(spyMw2.calledTwice).to.be.true;
+    expect(failMultiNock.isDone()).to.be.false;
   });
 
   it("should pass through normal 404 errors", async () => {
@@ -169,7 +169,7 @@ describe("cloudRunProxy", () => {
       .get("/404.html")
       .reply(404, "normal 404");
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -189,7 +189,7 @@ describe("cloudRunProxy", () => {
       .get("/404-cascade.html")
       .reply(404, "normal 404 with cascade", { "x-cascade": "pass" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
     const finalMw = sinon.stub().callsFake((_, res) => {
@@ -216,7 +216,7 @@ describe("cloudRunProxy", () => {
       .get("/cached")
       .reply(200, "cached page", { "cache-control": "custom", "set-cookie": "nom" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -237,7 +237,7 @@ describe("cloudRunProxy", () => {
       .get("/vary")
       .reply(200, "live vary version", { vary: "Other, Authorization" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -258,7 +258,7 @@ describe("cloudRunProxy", () => {
       .get("/500")
       .replyWithError({ message: "normal error" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -278,7 +278,7 @@ describe("cloudRunProxy", () => {
       .get("/timeout")
       .replyWithError({ message: "ahh", code: "ETIMEDOUT" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 
@@ -298,7 +298,7 @@ describe("cloudRunProxy", () => {
       .get("/sockettimeout")
       .replyWithError({ message: "ahh", code: "ESOCKETTIMEDOUT" });
 
-    const mwGenerator = await cloudRunProxy(fakeOptions);
+    const mwGenerator = cloudRunProxy(fakeOptions);
     const mw = await mwGenerator(fakeRewrite);
     const spyMw = sinon.spy(mw);
 

@@ -4,7 +4,7 @@ import * as utils from "../utils";
 import { Distribution } from "./distribution";
 import { FirebaseError } from "../error";
 
-// tslint:disable-next-line:no-var-requires
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const pkg = require("../../package.json");
 
 /**

@@ -21,6 +21,7 @@ describe("checkRuntimeDependencies()", () => {
 
   let sandbox: sinon.SinonSandbox;
   let logStub: sinon.SinonStub | null;
+  let timeStub: sinon.SinonStub | null;
   beforeEach(() => {
     sandbox = sinon.createSandbox();
     logStub = sandbox.stub(logger, "warn");
@@ -56,7 +57,6 @@ describe("checkRuntimeDependencies()", () => {
       });
   }
 
-  let timeStub: sinon.SinonStub | null;
   function stubTimes(warnAfter: number, errorAfter: number): void {
     timeStub = sandbox.stub(configstore, "get");
     timeStub.withArgs("motd.cloudBuildWarnAfter").returns(warnAfter);

@@ -13,6 +13,7 @@ export interface ExportMetadata {
   firestore?: {
     version: string;
     path: string;
+    // eslint-disable-next-line @typescript-eslint/camelcase, camelcase
     metadata_file: string;
   };
 }
@@ -32,7 +33,7 @@ export class HubExport {
   }
 
   public async exportAll(): Promise<void> {
-    const toExport = ALL_EMULATORS.filter(this.shouldExport);
+    const toExport = ALL_EMULATORS.filter(shouldExport);
     if (toExport.length === 0) {
       throw new FirebaseError("No running emulators support import/export.");
     }
@@ -44,10 +45,11 @@ export class HubExport {
       version: EmulatorHub.CLI_VERSION,
     };
 
-    if (this.shouldExport(Emulators.FIRESTORE)) {
+    if (shouldExport(Emulators.FIRESTORE)) {
       metadata.firestore = {
         version: getDownloadDetails(Emulators.FIRESTORE).version,
         path: "firestore_export",
+        // eslint-disable-next-line @typescript-eslint/camelcase
         metadata_file: "firestore_export/firestore_export.overall_export_metadata",
       };
       await this.exportFirestore(metadata);
@@ -58,13 +60,18 @@ export class HubExport {
   }
 
   private async exportFirestore(metadata: ExportMetadata): Promise<void> {
-    const firestoreInfo = EmulatorRegistry.get(Emulators.FIRESTORE)!!.getInfo();
+    const firestoreInfo = EmulatorRegistry.get(Emulators.FIRESTORE)?.getInfo();
+    if (!firestoreInfo) {
+      throw new FirebaseError("Failed to get emulator info for Firestore");
+    }
     const firestoreHost = `http://${firestoreInfo.host}:${firestoreInfo.port}`;
 
     const firestoreExportBody = {
       database: `projects/${this.projectId}/databases/(default)`,
+      // eslint-disable-next-line @typescript-eslint/camelcase
       export_directory: this.exportPath,
-      export_name: metadata.firestore!!.path,
+      // eslint-disable-next-line @typescript-eslint/camelcase
+      export_name: metadata.firestore?.path,
     };
 
     await api.request("POST", `/emulator/v1/projects/${this.projectId}:export`, {
@@ -73,8 +80,8 @@ export class HubExport {
       data: firestoreExportBody,
     });
   }
+}
 
-  private shouldExport(e: Emulators): boolean {
-    return IMPORT_EXPORT_EMULATORS.indexOf(e) >= 0 && EmulatorRegistry.isRunning(e);
-  }
+function shouldExport(e: Emulators): boolean {
+  return IMPORT_EXPORT_EMULATORS.includes(e) && EmulatorRegistry.isRunning(e);
 }

@@ -17,6 +17,7 @@ let authClient: GoogleAuth | undefined;
 /**
  * Returns the auth client.
  * @param config options for the auth client.
+ * @return authentication information.
  */
 function getAuthClient(config: GoogleAuthOptions): GoogleAuth {
   if (authClient) {
@@ -32,6 +33,7 @@ function getAuthClient(config: GoogleAuthOptions): GoogleAuth {
  * @param options CLI options.
  * @param authScopes scopes to be obtained.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function autoAuth(options: any, authScopes: string[]): Promise<void> {
   const client = getAuthClient({ scopes: authScopes, projectId: options.project });
   const token = await client.getAccessToken();
@@ -42,6 +44,7 @@ async function autoAuth(options: any, authScopes: string[]): Promise<void> {
  * Ensures that there is an authenticated user.
  * @param options CLI options.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function requireAuth(options: any): Promise<void> {
   api.setScopes([scopes.CLOUD_PLATFORM, scopes.FIREBASE_PLATFORM]);
   options.authScopes = api.getScopes();
