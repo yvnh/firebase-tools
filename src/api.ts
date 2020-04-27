@@ -11,7 +11,7 @@ import * as responseToError from "./responseToError";
 import * as scopes from "./scopes";
 import * as utils from "./utils";
 
-export enum Method {
+export enum HttpMethod {
   GET = "GET",
   PUT = "PUT",
   POST = "POST",
@@ -19,10 +19,8 @@ export enum Method {
   PATCH = "PATCH",
 }
 
-type Origin = string;
-
 interface UploadFile extends FormData.AppendOptions {
-  stream: any;
+  stream: unknown;
 }
 
 interface FirebaseRequestLogOptions {
@@ -33,18 +31,24 @@ interface FirebaseRequestLogOptions {
 
 interface FirebaseRequestOptions {
   auth?: boolean;
-  data?: any;
+  data?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   files?: { [k: string]: UploadFile };
-  form?: { [k: string]: any };
+  form?: { [k: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
   headers?: requestModule.Headers;
-  json?: any;
+  json?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   logOptions?: FirebaseRequestLogOptions;
-  origin: Origin;
-  qs?: any;
-  query?: any;
+  origin: string;
+  qs?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  query?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   resolveOnHTTPError?: boolean;
   retryCodes?: number[];
   timeout?: number;
+}
+
+interface FirebaseResponse {
+  status: number;
+  response: requestModule.Response;
+  body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 const CLI_VERSION = require("../package.json").version;
@@ -57,7 +61,7 @@ let commandScopes: string[] = [];
 function internalRequest(
   options: requestModule.OptionsWithUrl,
   logOptions: FirebaseRequestLogOptions = {}
-): Promise<any> {
+): Promise<FirebaseResponse> {
   let qsLog = "";
   let bodyLog = "<request body omitted>";
 
@@ -75,7 +79,7 @@ function internalRequest(
   options.headers["connection"] = "keep-alive";
 
   return new Promise((resolve, reject) => {
-    const req = requestModule(options, (err: Error, response: any, body: any) => {
+    requestModule(options, (err: Error, response: requestModule.Response, body: unknown) => {
       if (err) {
         return reject(
           new FirebaseError("Server Error. " + err.message, {
@@ -109,150 +113,154 @@ function appendQueryData(path: string, data: { [k: string]: string }): string {
 
 // "In this context, the client secret is obviously not treated as a secret"
 // https://developers.google.com/identity/protocols/OAuth2InstalledApp
-export const clientId: Origin = utils.envOverride(
+export const clientId = utils.envOverride(
   "FIREBASE_CLIENT_ID",
   "563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"
 );
-export const clientSecret: Origin = utils.envOverride(
-  "FIREBASE_CLIENT_SECRET",
-  "j9iVZfS8kkCEFUPaAeJV0sAi"
-);
-export const cloudbillingOrigin: Origin = utils.envOverride(
+export const clientSecret = utils.envOverride("FIREBASE_CLIENT_SECRET", "j9iVZfS8kkCEFUPaAeJV0sAi");
+export const cloudbillingOrigin = utils.envOverride(
   "FIREBASE_CLOUDBILLING_URL",
   "https://cloudbilling.googleapis.com"
 );
-export const cloudloggingOrigin: Origin = utils.envOverride(
+export const cloudloggingOrigin = utils.envOverride(
   "FIREBASE_CLOUDLOGGING_URL",
   "https://logging.googleapis.com"
 );
-export const appDistributionOrigin: Origin = utils.envOverride(
+export const appDistributionOrigin = utils.envOverride(
   "FIREBASE_APP_DISTRIBUTION_URL",
   "https://firebaseappdistribution.googleapis.com"
 );
-export const appDistributionUploadOrigin: Origin = utils.envOverride(
+export const appDistributionUploadOrigin = utils.envOverride(
   "FIREBASE_APP_DISTRIBUTION_UPLOAD_URL",
   "https://appdistribution-uploads.crashlytics.com"
 );
-export const appengineOrigin: Origin = utils.envOverride(
+export const appengineOrigin = utils.envOverride(
   "FIREBASE_APPENGINE_URL",
   "https://appengine.googleapis.com"
 );
-export const authOrigin: Origin = utils.envOverride(
-  "FIREBASE_AUTH_URL",
-  "https://accounts.google.com"
-);
-export const consoleOrigin: Origin = utils.envOverride(
+export const authOrigin = utils.envOverride("FIREBASE_AUTH_URL", "https://accounts.google.com");
+export const consoleOrigin = utils.envOverride(
   "FIREBASE_CONSOLE_URL",
   "https://console.firebase.google.com"
 );
-export const deployOrigin: Origin = utils.envOverride(
+export const deployOrigin = utils.envOverride(
   "FIREBASE_DEPLOY_URL",
   utils.envOverride("FIREBASE_UPLOAD_URL", "https://deploy.firebase.com")
 );
-export const firebaseApiOrigin: Origin = utils.envOverride(
+export const firebaseApiOrigin = utils.envOverride(
   "FIREBASE_API_URL",
   "https://firebase.googleapis.com"
 );
-export const firebaseExtensionsRegistryOrigin: Origin = utils.envOverride(
+export const firebaseExtensionsRegistryOrigin = utils.envOverride(
   "FIREBASE_EXT_REGISTRY_ORIGIN",
   "https://extensions-registry.firebaseapp.com"
 );
-export const firedataOrigin: Origin = utils.envOverride(
+export const firedataOrigin = utils.envOverride(
   "FIREBASE_FIREDATA_URL",
   "https://mobilesdk-pa.googleapis.com"
 );
-export const firestoreOriginOrEmulator: Origin = utils.envOverride(
+export const firestoreOriginOrEmulator = utils.envOverride(
   Constants.FIRESTORE_EMULATOR_HOST,
   "https://firestore.googleapis.com",
   (val) => `http://${val}`
 );
-export const firestoreOrigin: Origin = utils.envOverride(
+export const firestoreOrigin = utils.envOverride(
   "FIRESTORE_URL",
   "https://firestore.googleapis.com"
 );
-export const functionsOrigin: Origin = utils.envOverride(
+export const functionsOrigin = utils.envOverride(
   "FIREBASE_FUNCTIONS_URL",
   "https://cloudfunctions.googleapis.com"
 );
-export const cloudschedulerOrigin: Origin = utils.envOverride(
+export const cloudschedulerOrigin = utils.envOverride(
   "FIREBASE_CLOUDSCHEDULER_URL",
   "https://cloudscheduler.googleapis.com"
 );
-export const pubsubOrigin: Origin = utils.envOverride(
+export const pubsubOrigin = utils.envOverride(
   "FIREBASE_PUBSUB_URL",
   "https://pubsub.googleapis.com"
 );
-export const googleOrigin: Origin = utils.envOverride(
+export const googleOrigin = utils.envOverride(
   "FIREBASE_TOKEN_URL",
   utils.envOverride("FIREBASE_GOOGLE_URL", "https://www.googleapis.com")
 );
-export const hostingOrigin: Origin = utils.envOverride("FIREBASE_HOSTING_URL", "https://web.app");
-export const iamOrigin: Origin = utils.envOverride(
-  "FIREBASE_IAM_URL",
-  "https://iam.googleapis.com"
-);
-export const extensionsOrigin: Origin = utils.envOverride(
+export const hostingOrigin = utils.envOverride("FIREBASE_HOSTING_URL", "https://web.app");
+export const iamOrigin = utils.envOverride("FIREBASE_IAM_URL", "https://iam.googleapis.com");
+export const extensionsOrigin = utils.envOverride(
   "FIREBASE_EXT_URL",
   "https://firebaseextensions.googleapis.com"
 );
-export const realtimeOriginOrEmulator: Origin = utils.envOverride(
+export const realtimeOriginOrEmulator = utils.envOverride(
   Constants.FIREBASE_DATABASE_EMULATOR_HOST,
   "https://firebaseio.com",
   (val) => `http://${val}`
 );
-export const realtimeOrigin: Origin = utils.envOverride(
-  "FIREBASE_REALTIME_URL",
-  "https://firebaseio.com"
-);
-export const rtdbMetadataOrigin: Origin = utils.envOverride(
+export const realtimeOrigin = utils.envOverride("FIREBASE_REALTIME_URL", "https://firebaseio.com");
+export const rtdbMetadataOrigin = utils.envOverride(
   "FIREBASE_RTDB_METADATA_URL",
   "https://metadata-dot-firebase-prod.appspot.com"
 );
-export const resourceManagerOrigin: Origin = utils.envOverride(
+export const resourceManagerOrigin = utils.envOverride(
   "FIREBASE_RESOURCEMANAGER_URL",
   "https://cloudresourcemanager.googleapis.com"
 );
-export const rulesOrigin: Origin = utils.envOverride(
+export const rulesOrigin = utils.envOverride(
   "FIREBASE_RULES_URL",
   "https://firebaserules.googleapis.com"
 );
-export const runtimeconfigOrigin: Origin = utils.envOverride(
+export const runtimeconfigOrigin = utils.envOverride(
   "FIREBASE_RUNTIMECONFIG_URL",
   "https://runtimeconfig.googleapis.com"
 );
-export const storageOrigin: Origin = utils.envOverride(
+export const storageOrigin = utils.envOverride(
   "FIREBASE_STORAGE_URL",
   "https://storage.googleapis.com"
 );
-export const firebaseStorageOrigin: Origin = utils.envOverride(
+export const firebaseStorageOrigin = utils.envOverride(
   "FIREBASE_FIREBASESTORAGE_URL",
   "https://firebasestorage.googleapis.com"
 );
-export const hostingApiOrigin: Origin = utils.envOverride(
+export const hostingApiOrigin = utils.envOverride(
   "FIREBASE_HOSTING_API_URL",
   "https://firebasehosting.googleapis.com"
 );
-export const cloudRunApiOrigin: Origin = utils.envOverride(
+export const cloudRunApiOrigin = utils.envOverride(
   "CLOUD_RUN_API_URL",
   "https://run.googleapis.com"
 );
-export const serviceUsageOrigin: Origin = utils.envOverride(
+export const serviceUsageOrigin = utils.envOverride(
   "FIREBASE_SERVICE_USAGE_URL",
   "https://serviceusage.googleapis.com"
 );
 
+/**
+ * Sets the refresh token for request authn/z.
+ * @param t a token.
+ */
 export function setRefreshToken(t = ""): void {
   refreshToken = t;
 }
 
+/**
+ * Sets the access token for request authn/z.
+ * @param t a token.
+ */
 export function setAccessToken(t = ""): void {
   accessToken = t;
 }
 
+/**
+ * Gets the scopes for a command.
+ * @return the list of scopes.
+ */
 export function getScopes(): string[] {
   return commandScopes;
 }
 
+/**
+ * Sets the scopes to use when getting a new token.
+ * @param s the list of scopes.
+ */
 export function setScopes(s: string[] = []): void {
   commandScopes = _.uniq(
     _.flatten(
@@ -267,14 +275,23 @@ export function setScopes(s: string[] = []): void {
   logger.debug("> command requires scopes:", JSON.stringify(commandScopes));
 }
 
-// eslint-disable-next-line camelcase
+/**
+ * Gets an access token.
+ * @return a token.
+ */
 export async function getAccessToken(): Promise<string> {
   if (accessToken) return accessToken;
   const r = await require("./auth").getAccessToken(refreshToken, commandScopes);
   return r.access_token;
 }
 
-export async function addRequestHeaders(reqOptions: any): Promise<any> {
+/**
+ * Adds headers (including Authz) to a request object.
+ * @param reqOptions the request options.
+ */
+export async function addRequestHeaders(
+  reqOptions: requestModule.OptionsWithUrl
+): Promise<requestModule.OptionsWithUrl> {
   // Runtime fetch of Auth singleton to prevent circular module dependencies
   _.set(reqOptions, ["headers", "User-Agent"], `FirebaseCLI/${CLI_VERSION}`);
   _.set(reqOptions, ["headers", "X-Client-Version"], `FirebaseCLI/${CLI_VERSION}`);
@@ -283,11 +300,17 @@ export async function addRequestHeaders(reqOptions: any): Promise<any> {
   return reqOptions;
 }
 
+/**
+ * Make a request for the given resource.
+ * @param method HTTP method to use.
+ * @param resource resource to fetch.
+ * @param options FirebaseRequestOptions.
+ */
 export async function request(
-  method: Method | string,
+  method: HttpMethod | string,
   resource: string,
   options: FirebaseRequestOptions
-): Promise<any> {
+): Promise<FirebaseResponse> {
   options = _.extend(
     {
       data: {},
@@ -302,14 +325,14 @@ export async function request(
   }
 
   if (!VALID_METHODS.has(method)) {
-    method = Method.GET;
+    method = HttpMethod.GET;
   }
 
   if (options.query) {
     resource = appendQueryData(resource, options.query);
   }
 
-  if (method === Method.GET) {
+  if (method === HttpMethod.GET) {
     resource = appendQueryData(resource, options.data);
   }
 
@@ -331,7 +354,7 @@ export async function request(
   reqOptions.headers = options.headers;
   reqOptions.timeout = options.timeout;
 
-  let requestFunction = (): Promise<any> => {
+  let requestFunction = (): Promise<FirebaseResponse> => {
     return internalRequest(reqOptions, options.logOptions);
   };
 
@@ -342,7 +365,7 @@ export async function request(
 
   if (options.auth === true) {
     if (secureRequest) {
-      requestFunction = async (): Promise<any> => {
+      requestFunction = async (): Promise<FirebaseResponse> => {
         const reqOptionsWithToken = await addRequestHeaders(reqOptions);
         return internalRequest(reqOptionsWithToken, options.logOptions);
       };
@@ -363,7 +386,7 @@ export async function request(
     reqOptions.formData = formData;
   }
 
-  let res: any;
+  let res: FirebaseResponse | undefined;
   while (!res) {
     try {
       res = await requestFunction();
