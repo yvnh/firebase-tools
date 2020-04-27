@@ -1,18 +1,25 @@
 import * as api from "../api";
-import { logLabeledBullet, logLabeledSuccess } from "../utils";
 
 const VERSION = "v1";
 
-export function createTopic(name: string): Promise<void> {
-  return api.request("PUT", `/${VERSION}/${name}`, {
+/**
+ * Creates a pubsub topic.
+ * @param name topic to create.
+ */
+export async function createTopic(name: string): Promise<void> {
+  await api.request("PUT", `/${VERSION}/${name}`, {
     auth: true,
     origin: api.pubsubOrigin,
     data: { labels: { deployment: "firebase-schedule" } },
   });
 }
 
-export function deleteTopic(name: string): Promise<void> {
-  return api.request("DELETE", `/${VERSION}/${name}`, {
+/**
+ * Deletes a pubsub topic.
+ * @param name topic to delete.
+ */
+export async function deleteTopic(name: string): Promise<void> {
+  await api.request("DELETE", `/${VERSION}/${name}`, {
     auth: true,
     origin: api.pubsubOrigin,
   });
