@@ -1,8 +1,7 @@
+import got, { Options as GotOptions, CancelableRequest, Response } from "got";
 import * as _ from "lodash";
-import * as querystring from "querystring";
-import * as requestModule from "request";
-import * as url from "url";
 import * as FormData from "form-data";
+import { URL, parse as parseURL } from "url";
 
 import { Constants } from "./emulator/constants";
 import { FirebaseError } from "./error";
@@ -31,24 +30,27 @@ interface FirebaseRequestLogOptions {
 
 interface FirebaseRequestOptions {
   auth?: boolean;
+  body?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   data?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   files?: { [k: string]: UploadFile };
-  form?: { [k: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any
-  headers?: requestModule.Headers;
+  form?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  headers?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  method?: HttpMethod;
   json?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   logOptions?: FirebaseRequestLogOptions;
-  origin: string;
-  qs?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  searchParams?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   query?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   resolveOnHTTPError?: boolean;
   retryCodes?: number[];
   timeout?: number;
+  origin: string;
 }
 
 interface FirebaseResponse {
   status: number;
-  response: requestModule.Response;
-  body: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  response: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  body: any;
+  stream?: unknown;
 }
 
 const CLI_VERSION = require("../package.json").version;
@@ -58,57 +60,50 @@ let accessToken = "";
 let refreshToken = "";
 let commandScopes: string[] = [];
 
-function internalRequest(
-  options: requestModule.OptionsWithUrl,
+async function internalRequest(
+  options: GotOptions,
   logOptions: FirebaseRequestLogOptions = {}
 ): Promise<FirebaseResponse> {
-  let qsLog = "";
-  let bodyLog = "<request body omitted>";
+  let searchParams = "";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let bodyLog: any = "<request body omitted>";
 
-  if (options.qs && !logOptions.skipQueryParams) {
-    qsLog = JSON.stringify(options.qs);
+  if (options.searchParams && !logOptions.skipQueryParams) {
+    searchParams = JSON.stringify(options.searchParams);
   }
 
   if (!logOptions.skipRequestBody) {
     bodyLog = options.body || options.form || "";
   }
 
-  logger.debug(">>> HTTP REQUEST", options.method, options.url, qsLog, "\n", bodyLog);
+  logger.debug(">>> HTTP REQUEST", options.method, options.url, searchParams, "\n", bodyLog);
 
   options.headers = options.headers || {};
   options.headers["connection"] = "keep-alive";
 
-  return new Promise((resolve, reject) => {
-    requestModule(options, (err: Error, response: requestModule.Response, body: unknown) => {
-      if (err) {
-        return reject(
-          new FirebaseError("Server Error. " + err.message, {
-            original: err,
-            exit: 2,
-          })
-        );
-      }
-
-      logger.debug("<<< HTTP RESPONSE", response.statusCode, response.headers);
-      if (response.statusCode >= 400 && !logOptions.skipResponseBody) {
-        logger.debug("<<< HTTP RESPONSE BODY", response.body);
-      }
-
-      return resolve({
-        status: response.statusCode,
-        response: response,
-        body: body,
-      });
-    });
-  });
-}
-
-function appendQueryData(path: string, data: { [k: string]: string }): string {
-  if (data && _.size(data) > 0) {
-    path += _.includes(path, "?") ? "&" : "?";
-    path += querystring.stringify(data);
+  if (!options.url) {
+    throw new FirebaseError("options must include a `url` string value");
   }
-  return path;
+
+  try {
+    const res = await (got(options) as CancelableRequest<Response<string | Buffer>>);
+
+    logger.debug("<<< HTTP RESPONSE", res.statusCode, res.headers);
+    if (res.statusCode >= 400 && !logOptions.skipResponseBody) {
+      logger.debug("<<< HTTP RESPONSE BODY", res.body);
+    }
+
+    return {
+      status: res.statusCode,
+      response: res,
+      body: res.body,
+    };
+  } catch (err) {
+    throw new FirebaseError("Server Error. " + err.message, {
+      original: err,
+      exit: 2,
+    });
+  }
 }
 
 // "In this context, the client secret is obviously not treated as a secret"
@@ -289,15 +284,14 @@ export async function getAccessToken(): Promise<string> {
  * Adds headers (including Authz) to a request object.
  * @param reqOptions the request options.
  */
-export async function addRequestHeaders(
-  reqOptions: requestModule.OptionsWithUrl
-): Promise<requestModule.OptionsWithUrl> {
+export async function addRequestHeaders(reqOptions: any): Promise<any> {
+  const o = Object.assign({}, reqOptions);
   // Runtime fetch of Auth singleton to prevent circular module dependencies
-  _.set(reqOptions, ["headers", "User-Agent"], `FirebaseCLI/${CLI_VERSION}`);
-  _.set(reqOptions, ["headers", "X-Client-Version"], `FirebaseCLI/${CLI_VERSION}`);
+  _.set(o, ["headers", "User-Agent"], `FirebaseCLI/${CLI_VERSION}`);
+  _.set(o, ["headers", "X-Client-Version"], `FirebaseCLI/${CLI_VERSION}`);
   const accessToken = await getAccessToken();
-  _.set(reqOptions, "headers.authorization", `Bearer ${accessToken}`);
-  return reqOptions;
+  _.set(o, "headers.authorization", `Bearer ${accessToken}`);
+  return o;
 }
 
 /**
@@ -328,47 +322,59 @@ export async function request(
     method = HttpMethod.GET;
   }
 
+  let url = new URL(options.origin + resource);
+
+  // Append all query information to the URL.
   if (options.query) {
-    resource = appendQueryData(resource, options.query);
+    url = appendQueryData(url, options.query);
   }
-
+  // If we are doing a GET, attach the data as query parameters.
   if (method === HttpMethod.GET) {
-    resource = appendQueryData(resource, options.data);
+    url = appendQueryData(url, options.data);
   }
 
-  const reqOptions: requestModule.OptionsWithUrl = {
-    method: method,
-    url: options.origin + resource,
+  const reqOptions: GotOptions = {
+    method: method as HttpMethod,
+    url,
+    headers: {},
   };
 
+  // We will default to returning JSON, but will not set it.
+  if (options.json && typeof options.json !== "boolean") {
+    reqOptions.json = options.json;
+  }
+
   if (method !== HttpMethod.GET) {
-    if (_.size(options.data) > 0) {
+    if (_.size(options.data)) {
       reqOptions.body = options.data;
-    } else if (_.size(options.form) > 0) {
+    } else if (_.size(options.form)) {
       reqOptions.form = options.form;
+    } else if (_.size(options.json)) {
+      reqOptions.json = options.json;
     }
   }
 
-  reqOptions.json = options.json;
-  reqOptions.qs = options.qs;
+  reqOptions.searchParams = options.searchParams;
   reqOptions.headers = options.headers;
   reqOptions.timeout = options.timeout;
 
-  let requestFunction = (): Promise<FirebaseResponse> => {
-    return internalRequest(reqOptions, options.logOptions);
-  };
+  // let requestFunction = (): Promise<FirebaseResponse> => {
+  //   console.log(reqOptions);
+  //   return internalRequest(reqOptions, options.logOptions);
+  // };
 
   // Only 'https' requests are secure. Protocol includes the final ':'
   // https://developer.mozilla.org/en-US/docs/Web/API/URL/protocol
-  const originUrl = url.parse(options.origin);
+  const originUrl = parseURL(options.origin);
   const secureRequest = originUrl.protocol === "https:";
 
   if (options.auth === true) {
     if (secureRequest) {
-      requestFunction = async (): Promise<FirebaseResponse> => {
-        const reqOptionsWithToken = await addRequestHeaders(reqOptions);
-        return internalRequest(reqOptionsWithToken, options.logOptions);
-      };
+      console.error("SHOULD ADD HEADES");
+      // requestFunction = async (): Promise<FirebaseResponse> => {
+      //   const reqOptionsWithToken = await addRequestHeaders(reqOptions);
+      //   return internalRequest(reqOptionsWithToken, options.logOptions);
+      // };
     } else {
       logger.debug(`Ignoring options.auth for insecure origin: ${options.origin}`);
     }
@@ -383,20 +389,30 @@ export async function request(
         contentType: details.contentType,
       });
     });
-    reqOptions.formData = formData;
+    reqOptions.form = formData;
   }
 
-  let res: FirebaseResponse | undefined;
+  let res;
   while (!res) {
     try {
-      res = await requestFunction();
+      let o = reqOptions;
+      if (options.auth && secureRequest) {
+        console.error('adding headers')
+        o = await addRequestHeaders(o);
+      }
+      console.error(o);
+      res = await internalRequest(o, options.logOptions);
     } catch (err) {
       if (
         options.retryCodes &&
         _.includes(options.retryCodes, _.get(err, "context.response.statusCode"))
       ) {
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        res = await requestFunction();
+        let o = reqOptions;
+        if (options.auth && secureRequest) {
+          o = await addRequestHeaders(o);
+        }
+        res = await internalRequest(o, options.logOptions);
       }
       throw err;
     }
@@ -406,5 +422,17 @@ export async function request(
     return Promise.reject(responseToError(res.response, res.body));
   }
 
+  if (options.json) {
+    res.body = JSON.parse(res.body);
+  }
   return res;
+}
+
+function appendQueryData(u: URL, data: { [k: string]: string }): URL {
+  const url = new URL(u.toString());
+  for (const k of Object.keys(data)) {
+    const v = data[k];
+    url.searchParams.set(k, v);
+  }
+  return url;
 }
